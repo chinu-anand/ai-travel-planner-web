@@ -4,10 +4,10 @@ import { LogIn } from 'lucide-react'
 
 const Header = () => {
   return (
-    <div className='p-2 shadow-md flex justify-between items-center px-6'>
+    <div className='p-4 shadow-sm flex justify-between items-center px-6'>
         <img src="/logo.svg" alt="logo" />
         <div>
-            <Button className='bg-[#640D5F]'>
+            <Button>
               <LogIn /> Sign In</Button>
         </div>
     </div>
