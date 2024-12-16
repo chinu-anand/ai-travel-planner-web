@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input';
 import React, { useState } from 'react'
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete'
 
@@ -8,7 +9,7 @@ const CreateTrip = () => {
       <h2 className='font-bold text-3xl'>Tell us your travel preferences</h2>
       <p className='mt-3 text-gray-500 text-xl'>Just provide some basic information, and our trip planner will generate a customized iternaries based on your preferences.</p>
 
-      <div className='mt-20'>
+      <div className='mt-20 flex flex-col gap-10'>
         <div>
           <h2 className='text-xl my-4 font-medium'>Where are you planning to go?</h2>
           
@@ -20,6 +21,13 @@ const CreateTrip = () => {
             }}
           />
         </div>
+        <div>
+          <h2 className='text-xl my-4 font-medium'>How many days of trip you are planning for?</h2>
+          
+          <Input placeholder={'Ex. 3'} type="number"/>
+        </div>
+
+        
       </div>
     </div>
   )
