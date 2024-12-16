@@ -1,12 +1,12 @@
 import { Button } from './components/ui/button'
 import './App.css'
+import Hero from './components/custom/Hero'
 
 function App() {
 
   return (
     <>
-      <h2>Testing Vite</h2>
-      <Button>Testing</Button>
+      <Hero/>
     </>
   )
 }
