@@ -1,5 +1,6 @@
 import React from 'react'
 import { Button } from '../ui/button'
+import { Link } from 'react-router-dom'
 
 const Hero = () => {
   return (
@@ -8,7 +9,9 @@ const Hero = () => {
         <span className='text-[#FF6600]'>Discover Your Next Adventure with AI:</span> Personalised Iternaries at Your Fingertips</h1>
       <p className='text-xl text-center text-gray-500'>Your personal trip planner and travel curator, creating custom iternaries tailored to your interests and budget.</p>
 
-      <Button>Get Started, It's Free</Button>
+      <Link to={'/create-trip'}>
+        <Button>Get Started, It's Free</Button>
+      </Link>
     </div>
   )
 }
