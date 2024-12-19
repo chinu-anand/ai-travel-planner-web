@@ -1,8 +1,10 @@
 import { Input } from '@/components/ui/input';
-import { SelectBudgetOptions, SelectTravellersList } from '@/constants/options';
+import { AI_PROMPT, SelectBudgetOptions, SelectTravellersList } from '@/constants/options';
 import React, { useEffect, useState } from 'react'
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete'
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { chatSession } from '@/services/AIModel';
 
 const CreateTrip = () => {
   const [place, setPlace] = useState();
@@ -19,10 +21,22 @@ const CreateTrip = () => {
     console.log(formData);
   }, [formData])
 
-  const onGenerateTrip = () => {
-    if (formData?.noOfDays > 6) {
+  const onGenerateTrip = async () => {
+    if (formData?.noOfDays > 6 && !formData?.budget || !formData?.noOfTraveler || !formData?.location || formData?.noOfDays < 1) {
+      toast("Please fill all the details.")
       return;
     }
+
+    const FINAL_PROMPT = AI_PROMPT
+    .replaceAll('{location}', formData?.location?.label)
+    .replaceAll('{noOfDays}', formData?.noOfDays)
+    .replaceAll('{noOfTraveler}', formData?.noOfTraveler)
+    .replaceAll('{budget}', formData?.budget)
+
+    console.log(FINAL_PROMPT)
+
+    const result = await chatSession.sendMessage(FINAL_PROMPT);
+    console.log(result?.response?.text());
   }
 
   return (
@@ -46,7 +60,7 @@ const CreateTrip = () => {
           <h2 className='text-xl my-4 font-medium'>How many days of trip you are planning for?</h2>
           <Input placeholder={'Ex. 3'} type="number" onChange={(e) => handleInputChange('noOfDays', e.target.value)} />
         </div>
-        
+
         <div>
           <h2 className='text-xl mt-4 font-medium'>What's the budget?</h2>
           <p className='text-gray-500'>The budget is exclusively allocated for activities and during purposes.</p>
@@ -69,8 +83,8 @@ const CreateTrip = () => {
           <div className='grid md:grid-cols-4 gap-5 mt-4'>
             {SelectTravellersList.map((item, index) => (
               <div key={index}
-                onClick={() => handleInputChange('traveler', item.people)}
-                className={`p-4 border rounded-lg hover:shadow-lg cursor-pointer ${formData?.traveler == item.people && `shadow-lg border-black`}`}>
+                onClick={() => handleInputChange('noOfTraveler', item.people)}
+                className={`p-4 border rounded-lg hover:shadow-lg cursor-pointer ${formData?.noOfTraveler == item.people && `shadow-lg border-black`}`}>
                 <h2 className='text-3xl'>{item.icon}</h2>
                 <h2 className='font-bold text-lg'>{item.title}</h2>
                 <h2 className='text-sm text-gray-500'>{item.desc}</h2>
@@ -80,8 +94,8 @@ const CreateTrip = () => {
         </div>
       </div>
 
-      <div className='flex justify-end my-10'>
-        <Button onClick={onGenerateTrip}>Generate Trip</Button>
+      <div className='flex justify-center my-10'>
+        <Button onClick={onGenerateTrip} className='grow'>Generate Trip</Button>
       </div>
     </div>
   )
