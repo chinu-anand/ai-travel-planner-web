@@ -5,23 +5,18 @@ import GooglePlacesAutocomplete from 'react-google-places-autocomplete'
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { chatSession } from '@/services/AIModel';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FcGoogle } from "react-icons/fc";
 import { useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
+// CreateTrip Component
 const CreateTrip = () => {
   const [place, setPlace] = useState();
   const [formData, setFormData] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
 
+  // seting the values to the form data
   const handleInput = (name, value) => {
     setFormData({
       ...formData,
@@ -29,16 +24,13 @@ const CreateTrip = () => {
     })
   }
 
-  
-  useEffect(() => {
-    // console.log(formData);
-  }, [formData])
-  
+  // Google Login
   const login = useGoogleLogin({
-    onSuccess:(codeResp) => console.log(codeResp),
+    onSuccess:(response) => GetUserProfile(response),
     onError:(err)=> console.log(err)
-  })
+  });
 
+  // Generate Trip
   const onGenerateTrip = async () => {
 
     if (!formData?.location) {
@@ -62,6 +54,7 @@ const CreateTrip = () => {
     }
 
 
+    // Check if user is logged in
     const user = localStorage.getItem('user');
 
     if (!user) {
@@ -69,6 +62,7 @@ const CreateTrip = () => {
       return;
     }
 
+    // Replace the values in the AI_PROMPT
     const FINAL_PROMPT = AI_PROMPT
       .replaceAll('{location}', formData?.location?.label)
       .replaceAll('{noOfDays}', formData?.noOfDays)
@@ -81,16 +75,32 @@ const CreateTrip = () => {
     console.log(result?.response?.text());
   }
 
+  // Get User Profile
+  const GetUserProfile = (response) => {
+    axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${response.access_token}`,{
+      headers: {
+        Authorization: `Bearer ${response.access_token}`,
+        Accept: 'application/json',
+      }
+    }).then((res) => {
+      localStorage.setItem('user', JSON.stringify(res.data));
+      onGenerateTrip();
+      setOpenDialog(false);
+    })
+  }
+
   return (
     <div className='sm:px-10 md:px-32 lg:px-56 xl:px-32h px-5 mt-10'>
+      {/* Heading */}
       <h2 className='font-bold text-3xl'>Tell us your travel preferences 🏕️🌴</h2>
       <p className='mt-3 text-gray-500 text-xl'>Just provide some basic information, and our trip planner will generate a customized iternaries based on your preferences.</p>
-
       <div className='mt-20 flex flex-col gap-10'>
+        {/* Form Fields */}
         <div>
           <h2 className='text-xl my-4 font-medium'>Where are you planning to go?</h2>
           <GooglePlacesAutocomplete
             apiKey={import.meta.env.VITE_GOOGLEMAPS_APIKEY}
+            autocompletionRequest={{ types: ['(regions)'] }}
             selectProps={{
               place,
               onChange: (v) => { setPlace(v); handleInput('location', v) }
@@ -114,7 +124,6 @@ const CreateTrip = () => {
                 <h2 className='text-3xl'>{item.icon}</h2>
                 <h2 className='font-bold text-lg'>{item.title}</h2>
                 <h2 className='text-sm text-gray-500'>{item.desc}</h2>
-
               </div>
             ))}
           </div>
@@ -134,6 +143,7 @@ const CreateTrip = () => {
             ))}
           </div>
         </div>
+        
       </div>
 
       <div className='flex justify-center my-10'>
@@ -146,7 +156,7 @@ const CreateTrip = () => {
             <DialogTitle className="hidden"></DialogTitle>
             <DialogDescription>
               <img src="logo.svg" className='w-32' />
-              <h2 className='mt-4'>Please Sign In with Google to use the app securely.</h2>
+              Please Sign In with Google to use the app securely.
               <Button
                 onClick={login}
                 className="mt-6 flex gap-4 items-center w-full">
