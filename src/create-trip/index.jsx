@@ -7,14 +7,19 @@ import { toast } from 'sonner';
 import { chatSession } from '@/services/AIModel';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FcGoogle } from "react-icons/fc";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/services/firebaseConfig';
+import { v4 as uuidv4 } from 'uuid';
 
 // CreateTrip Component
 const CreateTrip = () => {
   const [place, setPlace] = useState();
   const [formData, setFormData] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // seting the values to the form data
   const handleInput = (name, value) => {
@@ -26,42 +31,36 @@ const CreateTrip = () => {
 
   // Google Login
   const login = useGoogleLogin({
-    onSuccess:(response) => GetUserProfile(response),
-    onError:(err)=> console.log(err)
+    onSuccess: (response) => GetUserProfile(response),
+    onError: (err) => console.log(err)
   });
 
   // Generate Trip
-  const onGenerateTrip = async () => {
+  const OnGenerateTrip = async () => {
 
+    // Check if all the fields are filled
     if (!formData?.location) {
-      toast("Please select where are you planning to go.");
+      toast("Please select where you are planning to go.");
       return;
-    }
-
-    if (formData?.noOfDays > 6 || formData?.noOfDays < 1) {
-      toast("Please select a for how many days you are planning to go. (upto 6 days)");
+    } else if (isNaN(Number(formData?.noOfDays)) || Number(formData?.noOfDays) > 6 || Number(formData?.noOfDays) < 1) {
+      toast("Please select how many days you are planning to go. (up to 6 days)");
       return;
-    }
-
-    if (!formData?.budget) {
+    } else if (!formData?.budget) {
       toast("Please select your budget.");
       return;
-    }
-
-    if (!formData?.noOfTraveler) {
+    } else if (!formData?.noOfTraveler) {
       toast("Please select the number of travelers.");
       return;
     }
 
-
     // Check if user is logged in
     const user = localStorage.getItem('user');
-
     if (!user) {
       setOpenDialog(true);
       return;
     }
 
+    setLoading(true);
     // Replace the values in the AI_PROMPT
     const FINAL_PROMPT = AI_PROMPT
       .replaceAll('{location}', formData?.location?.label)
@@ -69,22 +68,37 @@ const CreateTrip = () => {
       .replaceAll('{noOfTraveler}', formData?.noOfTraveler)
       .replaceAll('{budget}', formData?.budget)
 
-    console.log(FINAL_PROMPT)
+    // console.log(FINAL_PROMPT)
 
     const result = await chatSession.sendMessage(FINAL_PROMPT);
     console.log(result?.response?.text());
+    setLoading(false);
+    SavePromtResponse(result?.response?.text());
   }
 
+  const SavePromtResponse = async (response) => {
+    setLoading(true);
+    const userEmail = JSON.parse(localStorage.getItem('user'))?.email;
+    const docId = uuidv4();
+    // Save the response to the database
+    await setDoc(doc(db, "AITrips", docId), {
+      id: docId,
+      userEmail: userEmail,
+      userInput: formData,
+      tripData: JSON.parse(response),
+    });
+    setLoading(false);
+  }
   // Get User Profile
   const GetUserProfile = (response) => {
-    axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${response.access_token}`,{
+    axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${response.access_token}`, {
       headers: {
         Authorization: `Bearer ${response.access_token}`,
         Accept: 'application/json',
       }
     }).then((res) => {
       localStorage.setItem('user', JSON.stringify(res.data));
-      onGenerateTrip();
+      OnGenerateTrip();
       setOpenDialog(false);
     })
   }
@@ -116,7 +130,7 @@ const CreateTrip = () => {
         <div>
           <h2 className='text-xl mt-4 font-medium'>What's the budget?</h2>
           <p className='text-gray-500'>The budget is exclusively allocated for activities and during purposes.</p>
-          <div className='grid grid-cols-3 gap-5 mt-4'>
+          <div className='grid grid-cols-4 gap-5 mt-4'>
             {SelectBudgetOptions.map((item, index) => (
               <div key={index}
                 onClick={() => handleInput('budget', item.title)}
@@ -143,11 +157,13 @@ const CreateTrip = () => {
             ))}
           </div>
         </div>
-        
+
       </div>
 
       <div className='flex justify-center my-10'>
-        <Button onClick={onGenerateTrip} className='w-full'>Generate Trip</Button>
+        <Button disabled={loading} onClick={OnGenerateTrip} className='w-full'>
+          {loading ? (<><AiOutlineLoading3Quarters className='h-7 w-7 animate-spin' /><span>Creating Trip</span></>) : 'Generate Trip'}
+        </Button>
       </div>
 
       <Dialog open={openDialog}>
@@ -156,12 +172,12 @@ const CreateTrip = () => {
             <DialogTitle className="hidden"></DialogTitle>
             <DialogDescription>
               <img src="logo.svg" className='w-32' />
-              Please Sign In with Google to use the app securely.
+              Sign in with your Google account to access the app securely.
               <Button
                 onClick={login}
                 className="mt-6 flex gap-4 items-center w-full">
                 <FcGoogle className='!h-8 !w-8' />
-                Sign In With Google
+                Continue with Google
               </Button>
             </DialogDescription>
           </DialogHeader>
